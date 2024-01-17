@@ -1,7 +1,6 @@
 package datasource
 
 import (
-	"context"
 	"fmt"
 	"github.com/apache/arrow/go/v12/arrow"
 	"github.com/parquet-go/parquet-go"
@@ -9,6 +8,7 @@ import (
 	"io"
 	"os"
 	"strings"
+	"time"
 	execution "tiny_dataframe/pkg/e_exec_runtime"
 	containers "tiny_dataframe/pkg/g_containers"
 )
@@ -36,12 +36,12 @@ func (ds *ParquetDataSource) Schema() containers.ISchema {
 	return ds.schema
 }
 
-func (ds *ParquetDataSource) View(ctx context.Context, fn func(ctx context.Context, tx uint64) error) error {
-	tx := uint64(0) // TODO: this is timestamp
-	return fn(ctx, tx)
+func (ds *ParquetDataSource) View(ctx *execution.TaskContext, fn func(ctx *execution.TaskContext, snapshotTs uint64) error) error {
+	snapshotTs := uint64(time.Now().UnixNano())
+	return fn(ctx, snapshotTs)
 }
 
-func (ds *ParquetDataSource) Iterator(tCtx execution.TaskContext, callbacks []Callback, options ...Option) (err error) {
+func (ds *ParquetDataSource) Push(tCtx *execution.TaskContext, snapshotTs uint64, callbacks []Callback, options ...Option) (err error) {
 	parquetFile, osFile, err := openParquetFile(ds.filePath)
 	if err != nil {
 		return err
@@ -70,8 +70,9 @@ func (ds *ParquetDataSource) Iterator(tCtx execution.TaskContext, callbacks []Ca
 						return nil
 					}
 					var vectors []containers.IVector
-					schema := rg.Schema()
-					for c, colDef := range schema.Fields() {
+					parquetSchema := rg.Schema()
+					arrowColDefs := make([]arrow.Field, 0)
+					for c, colDef := range parquetSchema.Fields() {
 						if !parquetColumnIn(colDef, iterOpts.Projection) {
 							continue
 						}
@@ -80,8 +81,10 @@ func (ds *ParquetDataSource) Iterator(tCtx execution.TaskContext, callbacks []Ca
 							return err
 						}
 						vectors = append(vectors, vector)
+						arrowColDefs = append(arrowColDefs, arrow.Field{Name: colDef.Name(), Type: vector.DataType()})
 					}
-					batch := containers.NewBatch(ds.schema, vectors)
+					arrowSchema := containers.NewSchema(arrowColDefs, nil)
+					batch := containers.NewBatch(arrowSchema, vectors)
 					err := callback(ctx, batch)
 					if err != nil {
 						return err
@@ -93,6 +96,10 @@ func (ds *ParquetDataSource) Iterator(tCtx execution.TaskContext, callbacks []Ca
 
 	errG.Go(func() error {
 		for _, rg := range parquetFile.RowGroups() {
+			if uint64(1) > snapshotTs {
+				//TODO: replace this with the file write Ts.
+				continue
+			}
 			rowGroups <- rg
 		}
 		close(rowGroups)

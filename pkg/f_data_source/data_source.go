@@ -8,8 +8,8 @@ import (
 
 type TableReader interface {
 	Schema() containers.ISchema
-	View(ctx context.Context, fn func(ctx context.Context, tx uint64) error) error
-	Iterator(ctx execution.TaskContext, callbacks []Callback, options ...Option) error
+	View(ctx *execution.TaskContext, fn func(ctx *execution.TaskContext, snapshotTs uint64) error) error
+	Push(ctx *execution.TaskContext, snapshotTs uint64, callbacks []Callback, options ...Option) error
 }
 
 var _ TableReader = &ParquetDataSource{}
@@ -26,6 +26,5 @@ func WithProjection(e ...string) Option {
 
 // IterOptions are a set of options for the TableReader Iterators.
 type IterOptions struct {
-	Projection   []string
-	InMemoryOnly bool
+	Projection []string
 }

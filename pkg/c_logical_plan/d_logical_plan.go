@@ -8,6 +8,7 @@ import (
 )
 
 type LogicalPlan interface {
+	// TODO: remove Schema() in logicalplan
 	Schema() containers.ISchema
 	String() string
 

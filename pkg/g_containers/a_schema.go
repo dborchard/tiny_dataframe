@@ -12,6 +12,8 @@ type ISchema interface {
 
 var _ ISchema = Schema{}
 
+//TODO: need to replace this with []Expr rather than arrow.Schema
+
 type Schema struct {
 	src *arrow.Schema
 }

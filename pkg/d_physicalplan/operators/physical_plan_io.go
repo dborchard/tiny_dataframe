@@ -2,9 +2,10 @@ package operators
 
 import (
 	"context"
+	"golang.org/x/sync/errgroup"
 	"strings"
 	execution "tiny_dataframe/pkg/e_exec_runtime"
-	datasource "tiny_dataframe/pkg/f_storage_engine"
+	datasource "tiny_dataframe/pkg/f_data_source"
 	containers "tiny_dataframe/pkg/g_containers"
 )
 
@@ -35,7 +36,7 @@ func (s *Input) Schema() containers.ISchema {
 	return schema.Select(s.Projection)
 }
 
-func (s *Input) Execute(ctx execution.TaskContext, _ datasource.Callback) error {
+func (s *Input) Execute(ctx *execution.TaskContext, _ datasource.Callback) error {
 
 	childrenCallbacks := make([]datasource.Callback, 0, len(s.Children()))
 	for _, plan := range s.Children() {
@@ -45,7 +46,28 @@ func (s *Input) Execute(ctx execution.TaskContext, _ datasource.Callback) error 
 	options := []datasource.Option{
 		datasource.WithProjection(s.Projection...),
 	}
-	return s.Source.Iterator(ctx, childrenCallbacks, options...)
+
+	// For Push based functions.
+	errGroup, _ := errgroup.WithContext(ctx.Ctx)
+	errGroup.Go(func() error {
+		return s.Source.View(ctx, func(ctx *execution.TaskContext, snapshotTs uint64) error {
+			return s.Source.Push(ctx, snapshotTs, childrenCallbacks, options...)
+		})
+	})
+	if err := errGroup.Wait(); err != nil {
+		return err
+	}
+
+	// For AggFunc
+	errGroup, _ = errgroup.WithContext(ctx.Ctx)
+	for _, plan := range s.Children() {
+		plan := plan
+		errGroup.Go(func() (err error) {
+			return plan.Finish(ctx.Ctx)
+		})
+	}
+
+	return errGroup.Wait()
 }
 
 func (s *Input) Children() []PhysicalPlan {
@@ -57,28 +79,36 @@ func (s *Input) String() string {
 	return "Input: schema=" + schema.String() + ", projection=" + strings.Join(s.Projection, ",")
 }
 
+func (s *Input) Finish(ctx context.Context) error {
+	panic("bug")
+}
+
 // --------Output---------
 
 type Output struct {
 	OutputCallback datasource.Callback
 }
 
-func (e Output) Schema() containers.ISchema {
+func (e *Output) Schema() containers.ISchema {
 	panic("bug")
 }
 
-func (e Output) Children() []PhysicalPlan {
+func (e *Output) Children() []PhysicalPlan {
 	panic("bug")
 }
 
-func (e Output) Callback(ctx context.Context, r containers.IBatch) error {
+func (e *Output) Callback(ctx context.Context, r containers.IBatch) error {
 	return e.OutputCallback(ctx, r)
 }
 
-func (e Output) Execute(ctx execution.TaskContext, callback datasource.Callback) error {
+func (e *Output) Execute(ctx *execution.TaskContext, callback datasource.Callback) error {
 	panic("bug")
 }
 
-func (e Output) SetNext(next PhysicalPlan) {
+func (e *Output) SetNext(next PhysicalPlan) {
 	panic("bug")
+}
+
+func (e *Output) Finish(ctx context.Context) error {
+	return nil
 }

@@ -3,9 +3,9 @@ package operators
 import (
 	"context"
 	"fmt"
-	"tiny_dataframe/pkg/d_physicalplan/expr_eval"
+	"tiny_dataframe/pkg/d_physicalplan/eval_expr"
 	execution "tiny_dataframe/pkg/e_exec_runtime"
-	datasource "tiny_dataframe/pkg/f_storage_engine"
+	datasource "tiny_dataframe/pkg/f_data_source"
 	containers "tiny_dataframe/pkg/g_containers"
 )
 
@@ -26,11 +26,14 @@ type PhysicalPlan interface {
 
 	// Callback is used by the parent to send data to the child.
 	// Used by Output, Projection, Selection
-	Callback(ctx context.Context, r containers.IBatch) error
+	Callback(ctx context.Context, batch containers.IBatch) error
 	SetNext(next PhysicalPlan)
 
+	// Finish is used by aggFn.
+	Finish(ctx context.Context) error
+
 	// Execute is only valid for DataSource, ie Input
-	Execute(ctx execution.TaskContext, callback datasource.Callback) error
+	Execute(ctx *execution.TaskContext, callback datasource.Callback) error
 }
 
 var _ PhysicalPlan = &Input{}
@@ -38,13 +41,14 @@ var _ PhysicalPlan = &Output{}
 
 var _ PhysicalPlan = &Projection{}
 var _ PhysicalPlan = &Selection{}
+var _ PhysicalPlan = &HashAggregate{}
 
 //----------------- Projection -----------------
 
 type Projection struct {
 	Next PhysicalPlan
 	Sch  containers.ISchema
-	Proj []expr_eval.Expr
+	Proj []eval_expr.Expr
 }
 
 func (p *Projection) SetNext(next PhysicalPlan) {
@@ -71,7 +75,7 @@ func (p *Projection) Schema() containers.ISchema {
 	return p.Sch
 }
 
-func (p *Projection) Execute(_ execution.TaskContext, _ datasource.Callback) error {
+func (p *Projection) Execute(_ *execution.TaskContext, _ datasource.Callback) error {
 	panic("bug if you see this")
 }
 
@@ -79,11 +83,16 @@ func (p *Projection) Children() []PhysicalPlan {
 	return []PhysicalPlan{p.Next}
 }
 
+func (p *Projection) Finish(ctx context.Context) error {
+	return p.Next.Finish(ctx)
+}
+
 //----------------- Selection -----------------
 
 type Selection struct {
+	Sch    containers.ISchema
 	Next   PhysicalPlan
-	Filter expr_eval.Expr
+	Filter eval_expr.Expr
 }
 
 func (s *Selection) SetNext(next PhysicalPlan) {
@@ -100,13 +109,17 @@ func (s *Selection) Callback(ctx context.Context, batch containers.IBatch) error
 }
 
 func (s *Selection) Schema() containers.ISchema {
-	return s.Next.Schema()
+	return s.Sch
 }
 
 func (s *Selection) Children() []PhysicalPlan {
 	return []PhysicalPlan{s.Next}
 }
 
-func (s *Selection) Execute(ctx execution.TaskContext, callback datasource.Callback) error {
+func (s *Selection) Execute(ctx *execution.TaskContext, callback datasource.Callback) error {
 	panic("bug if you see this")
+}
+
+func (s *Selection) Finish(ctx context.Context) error {
+	return s.Next.Finish(ctx)
 }

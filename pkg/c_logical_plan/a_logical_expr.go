@@ -17,25 +17,25 @@ type Expr interface {
 	String() string
 }
 
-var _ Expr = Column{}
-var _ Expr = Alias{}
+var _ Expr = ColumnExpr{}
+var _ Expr = AliasExpr{}
 
 var _ Expr = BooleanBinaryExpr{}
 var _ Expr = MathExpr{}
 var _ Expr = AggregateExpr{}
 
-var _ Expr = LiteralString{}
-var _ Expr = LiteralInt64{}
-var _ Expr = LiteralFloat64{}
+var _ Expr = LiteralStringExpr{}
+var _ Expr = LiteralInt64Expr{}
+var _ Expr = LiteralFloat64Expr{}
 
-// ---------- Column ----------
+// ---------- ColumnExpr ----------
 
-type Column struct {
+type ColumnExpr struct {
 	// TODO: should this have arrow.Field?
 	Name string
 }
 
-func (col Column) DataType(schema containers.ISchema) (arrow.DataType, error) {
+func (col ColumnExpr) DataType(schema containers.ISchema) (arrow.DataType, error) {
 	for _, f := range schema.Fields() {
 		if f.Name == col.Name {
 			return f.Type, nil
@@ -44,7 +44,7 @@ func (col Column) DataType(schema containers.ISchema) (arrow.DataType, error) {
 	return nil, fmt.Errorf("column %s not found", col.Name)
 }
 
-func (col Column) ColumnsUsed(input LogicalPlan) []arrow.Field {
+func (col ColumnExpr) ColumnsUsed(input LogicalPlan) []arrow.Field {
 	schema := input.Schema()
 	for _, f := range schema.Fields() {
 		if f.Name == col.Name {
@@ -55,75 +55,75 @@ func (col Column) ColumnsUsed(input LogicalPlan) []arrow.Field {
 	return []arrow.Field{}
 }
 
-func (col Column) String() string {
+func (col ColumnExpr) String() string {
 	return "#" + col.Name
 }
 
-// ---------- Alias ----------
+// ---------- AliasExpr ----------
 
-type Alias struct {
+type AliasExpr struct {
 	Expr  Expr
 	Alias string
 }
 
-func (expr Alias) DataType(schema containers.ISchema) (arrow.DataType, error) {
+func (expr AliasExpr) DataType(schema containers.ISchema) (arrow.DataType, error) {
 	return expr.Expr.DataType(schema)
 }
 
-func (expr Alias) ColumnsUsed(input LogicalPlan) []arrow.Field {
+func (expr AliasExpr) ColumnsUsed(input LogicalPlan) []arrow.Field {
 	return expr.Expr.ColumnsUsed(input)
 }
 
-func (expr Alias) String() string {
+func (expr AliasExpr) String() string {
 	return fmt.Sprintf("%s as %s", expr.Expr.String(), expr.Alias)
 }
 
 // ---------- Literals ----------
 
-type LiteralString struct {
+type LiteralStringExpr struct {
 	Val string
 }
 
-func (lit LiteralString) DataType(schema containers.ISchema) (arrow.DataType, error) {
+func (lit LiteralStringExpr) DataType(schema containers.ISchema) (arrow.DataType, error) {
 	return arrow.BinaryTypes.String, nil
 }
 
-func (lit LiteralString) ColumnsUsed(input LogicalPlan) []arrow.Field {
+func (lit LiteralStringExpr) ColumnsUsed(input LogicalPlan) []arrow.Field {
 	return nil
 }
 
-func (lit LiteralString) String() string {
+func (lit LiteralStringExpr) String() string {
 	return fmt.Sprintf("'%s'", lit.Val)
 }
 
-type LiteralInt64 struct {
+type LiteralInt64Expr struct {
 	Val int64
 }
 
-func (lit LiteralInt64) DataType(schema containers.ISchema) (arrow.DataType, error) {
+func (lit LiteralInt64Expr) DataType(schema containers.ISchema) (arrow.DataType, error) {
 	return arrow.PrimitiveTypes.Int64, nil
 }
 
-func (lit LiteralInt64) ColumnsUsed(input LogicalPlan) []arrow.Field {
+func (lit LiteralInt64Expr) ColumnsUsed(input LogicalPlan) []arrow.Field {
 	return nil
 }
 
-func (lit LiteralInt64) String() string {
+func (lit LiteralInt64Expr) String() string {
 	return strconv.Itoa(int(lit.Val))
 }
 
-type LiteralFloat64 struct {
+type LiteralFloat64Expr struct {
 	Val float64
 }
 
-func (lit LiteralFloat64) DataType(schema containers.ISchema) (arrow.DataType, error) {
+func (lit LiteralFloat64Expr) DataType(schema containers.ISchema) (arrow.DataType, error) {
 	return arrow.PrimitiveTypes.Float64, nil
 }
 
-func (lit LiteralFloat64) ColumnsUsed(input LogicalPlan) []arrow.Field {
+func (lit LiteralFloat64Expr) ColumnsUsed(input LogicalPlan) []arrow.Field {
 	return nil
 }
 
-func (lit LiteralFloat64) String() string {
+func (lit LiteralFloat64Expr) String() string {
 	return strconv.FormatFloat(lit.Val, 'f', -1, 64)
 }

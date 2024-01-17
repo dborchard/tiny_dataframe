@@ -3,29 +3,29 @@ package physicalplan
 import (
 	"errors"
 	logicalplan "tiny_dataframe/pkg/c_logical_plan"
-	"tiny_dataframe/pkg/d_physicalplan/expr_eval"
+	"tiny_dataframe/pkg/d_physicalplan/eval_expr"
 	"tiny_dataframe/pkg/d_physicalplan/operators"
 	containers "tiny_dataframe/pkg/g_containers"
 )
 
 type QueryPlanner interface {
-	CreatePhyExpr(e logicalplan.Expr, schema containers.ISchema) (expr_eval.Expr, error)
+	CreatePhyExpr(e logicalplan.Expr, schema containers.ISchema) (eval_expr.Expr, error)
 	CreatePhyPlan(lp logicalplan.LogicalPlan, state ExecState) (operators.PhysicalPlan, error)
 }
 
 type DefaultQueryPlanner struct {
 }
 
-func (d DefaultQueryPlanner) CreatePhyExpr(e logicalplan.Expr, schema containers.ISchema) (expr_eval.Expr, error) {
+func (d DefaultQueryPlanner) CreatePhyExpr(e logicalplan.Expr, schema containers.ISchema) (eval_expr.Expr, error) {
 	switch v := e.(type) {
-	case logicalplan.Column:
-		return expr_eval.ColumnExpression{Index: schema.IndexOf(v.Name)}, nil
-	case logicalplan.LiteralInt64:
-		return expr_eval.LiteralInt64Expression{Value: v.Val}, nil
-	case logicalplan.LiteralFloat64:
-		return expr_eval.LiteralFloat64Expression{Value: v.Val}, nil
-	case logicalplan.LiteralString:
-		return expr_eval.LiteralStringExpression{Value: v.Val}, nil
+	case logicalplan.ColumnExpr:
+		return eval_expr.ColumnExpr{Index: schema.IndexOf(v.Name)}, nil
+	case logicalplan.LiteralInt64Expr:
+		return eval_expr.LiteralInt64Expr{Value: v.Val}, nil
+	case logicalplan.LiteralFloat64Expr:
+		return eval_expr.LiteralFloat64Expr{Value: v.Val}, nil
+	case logicalplan.LiteralStringExpr:
+		return eval_expr.LiteralStringExpr{Value: v.Val}, nil
 	case logicalplan.BooleanBinaryExpr:
 		l, err := d.CreatePhyExpr(v.L, schema)
 		if err != nil {
@@ -35,7 +35,14 @@ func (d DefaultQueryPlanner) CreatePhyExpr(e logicalplan.Expr, schema containers
 		if err != nil {
 			return nil, err
 		}
-		return expr_eval.BooleanBinaryExpr{L: l, R: r, Op: v.Op}, nil
+		return eval_expr.BooleanBinaryExpr{L: l, R: r, Op: v.Op}, nil
+	case logicalplan.AggregateExpr:
+		// TODO: not being used. make it work.
+		inner, err := d.CreatePhyExpr(v.Expr, schema)
+		if err != nil {
+			return nil, err
+		}
+		return eval_expr.AggregateExpr{Name: v.Name, Expr: inner}, nil
 	default:
 		return nil, errors.New("expr not implemented")
 	}
@@ -52,7 +59,7 @@ func (d DefaultQueryPlanner) CreatePhyPlan(lp logicalplan.LogicalPlan, state Exe
 			source = scan
 			prev = scan
 		case logicalplan.Projection:
-			projExpr := make([]expr_eval.Expr, len(lPlan.Proj))
+			projExpr := make([]eval_expr.Expr, len(lPlan.Proj))
 			for i, e := range lPlan.Proj {
 				schema := prev.Schema()
 				projExpr[i], _ = d.CreatePhyExpr(e, schema)
@@ -67,9 +74,26 @@ func (d DefaultQueryPlanner) CreatePhyPlan(lp logicalplan.LogicalPlan, state Exe
 			schema := prev.Schema()
 			filterExpr, _ := d.CreatePhyExpr(lPlan.Filter, schema)
 
-			selection := &operators.Selection{Filter: filterExpr}
+			selection := &operators.Selection{Sch: schema, Filter: filterExpr}
 			prev.SetNext(selection)
 			prev = selection
+		case logicalplan.Aggregate:
+			groupByExpr := make([]eval_expr.Expr, len(lPlan.GroupExpr))
+			schema := prev.Schema()
+			for i, e := range lPlan.GroupExpr {
+				groupByExpr[i], _ = d.CreatePhyExpr(e, schema)
+			}
+
+			aggExpr := make([]eval_expr.AggregateExpr, len(lPlan.AggregateExpr))
+			for i, e := range lPlan.AggregateExpr {
+				inner, _ := d.CreatePhyExpr(e.Expr, schema)
+				//TODO: modify this to use d.CreatePhyExpr(e.Expr, schema)
+				aggExpr[i] = eval_expr.AggregateExpr{Name: e.Name, Expr: inner}
+			}
+
+			agg := operators.NewHashAggregate(groupByExpr, aggExpr)
+			prev.SetNext(agg)
+			prev = agg
 
 		case logicalplan.Output:
 			callback := lPlan.Callback

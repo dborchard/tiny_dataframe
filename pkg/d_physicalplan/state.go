@@ -24,8 +24,8 @@ func NewExecState(sessionId string) *ExecState {
 	}
 }
 
-func (s ExecState) TaskContext() execution.TaskContext {
-	return execution.TaskContext{
+func (s ExecState) TaskContext() *execution.TaskContext {
+	return &execution.TaskContext{
 		SessionID: s.SessionID,
 		TaskID:    time.Now().String(),
 		Runtime:   s.RuntimeEnv,

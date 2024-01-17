@@ -18,7 +18,7 @@ func (e AggregateExpr) DataType(schema containers.ISchema) (arrow.DataType, erro
 }
 
 func (e AggregateExpr) String() string {
-	return fmt.Sprintf("%s(%s)", e.Name, e.String())
+	return fmt.Sprintf("%s(%s)", e.Name, e.Expr.String())
 }
 
 func (e AggregateExpr) ColumnsUsed(input LogicalPlan) []arrow.Field {
