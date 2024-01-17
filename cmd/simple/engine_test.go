@@ -1,13 +1,14 @@
-package engine
+package simple
 
 import (
 	"fmt"
 	"testing"
+	"tiny_dataframe/pkg/a_engine"
 	logicalplan "tiny_dataframe/pkg/c_logical_plan"
 )
 
 func TestParquetFile(t *testing.T) {
-	ctx := NewContext()
+	ctx := engine.NewContext()
 	df, err := ctx.Parquet("../../test/data/c1_c2_int64.parquet", nil)
 	if err != nil {
 		t.Error(err)
