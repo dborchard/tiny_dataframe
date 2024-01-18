@@ -113,12 +113,15 @@ func (e BooleanBinaryExpr) Evaluate(input containers.IBatch) (containers.IVector
 func (e BooleanBinaryExpr) evaluate(l, r containers.IVector) (containers.IVector, error) {
 	res := make([]any, 0)
 	switch e.Op {
-	case "=":
-		for i := 0; i < l.Len(); i++ {
-			if l.GetValue(i) == r.GetValue(i) {
-				res = append(res, true)
-			} else {
-				res = append(res, false)
+	case "<":
+		switch l.DataType() {
+		case arrow.PrimitiveTypes.Int64:
+			for i := 0; i < l.Len(); i++ {
+				if l.GetValue(i).(int64) < r.GetValue(i).(int64) {
+					res = append(res, true)
+				} else {
+					res = append(res, false)
+				}
 			}
 		}
 		return containers.NewVector(arrow.FixedWidthTypes.Boolean, res), nil
