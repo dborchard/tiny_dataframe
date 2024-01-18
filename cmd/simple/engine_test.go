@@ -15,24 +15,24 @@ func TestParquetFile(t *testing.T) {
 		t.Error(err)
 	}
 
-	//df = df.
-	//	Filter(logicalplan.Eq(
-	//		logicalplan.ColumnExpr{Name: "c1"},
-	//		logicalplan.LiteralInt64Expr{Val: 200},
-	//	)).
-	//	Project(
-	//		logicalplan.ColumnExpr{Name: "c1"},
-	//		logicalplan.ColumnExpr{Name: "c2"},
-	//	).Aggregate(
-	//	[]logicalplan.Expr{
-	//		logicalplan.ColumnExpr{Name: "c1"},
-	//	},
-	//	[]logicalplan.AggregateExpr{
-	//		{
-	//			Name: "sum",
-	//			Expr: logicalplan.ColumnExpr{Name: "c2"},
-	//		},
-	//	})
+	df = df.
+		Filter(logicalplan.Eq(
+			logicalplan.ColumnExpr{Name: "c1"},
+			logicalplan.LiteralInt64Expr{Val: 200},
+		)).
+		Project(
+			logicalplan.ColumnExpr{Name: "c1"},
+			logicalplan.ColumnExpr{Name: "c2"},
+		).Aggregate(
+		[]logicalplan.Expr{
+			logicalplan.ColumnExpr{Name: "c1"},
+		},
+		[]logicalplan.AggregateExpr{
+			{
+				Name: "sum",
+				Expr: logicalplan.ColumnExpr{Name: "c2"},
+			},
+		})
 
 	logicalPlan, _ := df.LogicalPlan()
 	fmt.Println(logicalplan.PrettyPrint(logicalPlan, 0))
