@@ -15,6 +15,8 @@ func TestParquetFile(t *testing.T) {
 		t.Error(err)
 	}
 
+	_ = df.Show()
+
 	df = df.
 		Filter(logicalplan.Eq(
 			logicalplan.ColumnExpr{Name: "c1"},

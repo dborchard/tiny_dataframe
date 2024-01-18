@@ -28,6 +28,8 @@ import (
 func TestParquetFile(t *testing.T) {
 	ctx := engine.NewContext()
 	df, err := ctx.Parquet("../../test/data/c1_c2_c3_int64.parquet", nil)
+	
+	_ = df.Show()
 	/*
 	+-----+-----+-----+
 	| C1  | C2  | C3  |

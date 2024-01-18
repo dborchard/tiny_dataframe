@@ -63,12 +63,26 @@ func (df *DataFrame) Aggregate(groupBy []logicalplan.Expr, aggExpr []logicalplan
 }
 
 func (df *DataFrame) collect(ctx context.Context, callback datasource.Callback) error {
-	df.planBuilder.Output(callback)
+	// create a copy of the plan builder and add the output operator
+	// NOTE: This is a hack to add Output operator to the PhysicalPlan.
+	builder := df.planBuilder.Clone().Output(callback)
 
-	physicalPlan, err := df.PhysicalPlan()
+	// build the logical plan
+	plan, err := builder.Build()
 	if err != nil {
 		return err
 	}
+
+	// optimize the logical plan
+	plan = df.ruleBasedOptimizer.Optimize(plan)
+
+	// create the physical plan
+	physicalPlan, err := df.sessionState.CreatePhysicalPlan(plan)
+	if err != nil {
+		return err
+	}
+
+	// execute the physical plan
 	return physicalPlan.Execute(df.TaskContext(), callback)
 }
 

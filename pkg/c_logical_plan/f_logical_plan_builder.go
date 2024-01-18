@@ -44,6 +44,14 @@ func (b *Builder) Build() (LogicalPlan, error) {
 	return b.plan, nil
 }
 
+func (b *Builder) Clone() *Builder {
+	var copiedPlan LogicalPlan
+	if b.plan != nil {
+		copiedPlan = b.plan
+	}
+	return &Builder{plan: copiedPlan}
+}
+
 func Validate(plan LogicalPlan) error {
 	return nil
 }
