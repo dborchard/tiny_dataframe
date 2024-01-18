@@ -16,7 +16,18 @@ func TestParquetFile(t *testing.T) {
 	}
 
 	_ = df.Show()
-
+	/*
+	   +-----+-----+-----+
+	   | C1  | C2  | C3  |
+	   +-----+-----+-----+
+	   | 100 | 101 | 102 |
+	   | 100 | 201 | 202 |
+	   | 100 | 301 | 302 |
+	   | 200 | 401 | 402 |
+	   | 200 | 501 | 502 |
+	   | 300 | 601 | 602 |
+	   +-----+-----+-----+
+	*/
 	df = df.
 		Filter(logicalplan.Lt(
 			logicalplan.ColumnExpr{Name: "c1"},
@@ -39,13 +50,32 @@ func TestParquetFile(t *testing.T) {
 	logicalPlan, _ := df.LogicalPlan()
 	fmt.Println(logicalplan.PrettyPrint(logicalPlan, 0))
 	assert.Equal(t, "Aggregate: groupExpr=[#c1], aggregateExpr=[sum(#c2)]\n\tProjection: #c1, #c2\n\t\tFilter: #c1 < 300\n\t\t\tInput: ../../test/data/c1_c2_c3_int64.parquet; projExpr=None\n", logicalplan.PrettyPrint(logicalPlan, 0))
+	/*
+		Aggregate: groupExpr=[#c1], aggregateExpr=[sum(#c2)]
+			Projection: #c1, #c2
+				Filter: #c1 < 300
+					Input: ../../test/data/c1_c2_c3_int64.parquet; projExpr=None
+	*/
 
 	logicalPlan, _ = df.OptimizedLogicalPlan()
 	fmt.Println(logicalplan.PrettyPrint(logicalPlan, 0))
 	assert.Equal(t, "Aggregate: groupExpr=[#c1], aggregateExpr=[sum(#c2)]\n\tProjection: #c1, #c2\n\t\tFilter: #c1 < 300\n\t\t\tInput: ../../test/data/c1_c2_c3_int64.parquet; projExpr=[c1 c2]\n", logicalplan.PrettyPrint(logicalPlan, 0))
-
+	/*
+	   Aggregate: groupExpr=[#c1], aggregateExpr=[sum(#c2)]
+	   	Projection: #c1, #c2
+	   		Filter: #c1 < 300
+	   			Input: ../../test/data/c1_c2_c3_int64.parquet; projExpr=[c1 c2]
+	*/
 	err = df.Show()
 	if err != nil {
 		t.Error(err)
 	}
+	/*
+		+-----+---------+
+		| #0  | SUM(#1) |
+		+-----+---------+
+		| 100 |     603 |
+		| 200 |     902 |
+		+-----+---------+
+	*/
 }
