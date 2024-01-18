@@ -4,7 +4,7 @@ import (
 	"context"
 	"time"
 	logicalplan "tiny_dataframe/pkg/c_logical_plan"
-	"tiny_dataframe/pkg/d_physicalplan/operators"
+	operators "tiny_dataframe/pkg/d_physicalplan/b_operators"
 	execution "tiny_dataframe/pkg/e_exec_runtime"
 )
 

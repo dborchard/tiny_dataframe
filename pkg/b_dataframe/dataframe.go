@@ -4,18 +4,18 @@ import (
 	"context"
 	"github.com/olekukonko/tablewriter"
 	"os"
-	"tiny_dataframe/pkg/c_logical_plan/optimizer"
+	rbo "tiny_dataframe/pkg/c_logical_plan/optimizer"
+	operators "tiny_dataframe/pkg/d_physicalplan/b_operators"
+	"tiny_dataframe/pkg/d_physicalplan/c_table_provider"
 	execution "tiny_dataframe/pkg/e_exec_runtime"
 
 	logicalplan "tiny_dataframe/pkg/c_logical_plan"
 	phyiscalplan "tiny_dataframe/pkg/d_physicalplan"
-	"tiny_dataframe/pkg/d_physicalplan/operators"
-	datasource "tiny_dataframe/pkg/f_data_source"
 	containers "tiny_dataframe/pkg/g_containers"
 )
 
 type IDataFrame interface {
-	Scan(path string, source datasource.TableReader, proj []string) IDataFrame
+	Scan(path string, source tableprovider.TableReader, proj []string) IDataFrame
 	Project(expr ...logicalplan.Expr) IDataFrame
 	Filter(expr logicalplan.Expr) IDataFrame
 	Aggregate(groupBy []logicalplan.Expr, aggregateExpr []logicalplan.AggregateExpr) IDataFrame
@@ -31,18 +31,18 @@ type IDataFrame interface {
 type DataFrame struct {
 	sessionState       *phyiscalplan.ExecState
 	planBuilder        *logicalplan.Builder
-	ruleBasedOptimizer *optimizer.Optimizer
+	ruleBasedOptimizer *rbo.Optimizer
 }
 
 func NewDataFrame(sessionState *phyiscalplan.ExecState) IDataFrame {
 	return &DataFrame{
 		sessionState:       sessionState,
 		planBuilder:        logicalplan.NewBuilder(),
-		ruleBasedOptimizer: optimizer.NewOptimizer(),
+		ruleBasedOptimizer: rbo.NewOptimizer(),
 	}
 }
 
-func (df *DataFrame) Scan(path string, source datasource.TableReader, proj []string) IDataFrame {
+func (df *DataFrame) Scan(path string, source tableprovider.TableReader, proj []string) IDataFrame {
 	df.planBuilder.Input(path, source, proj)
 	return df
 }
@@ -62,7 +62,7 @@ func (df *DataFrame) Aggregate(groupBy []logicalplan.Expr, aggExpr []logicalplan
 	return df
 }
 
-func (df *DataFrame) collect(ctx context.Context, callback datasource.Callback) error {
+func (df *DataFrame) collect(ctx context.Context, callback tableprovider.Callback) error {
 	// create a copy of the plan builder and add the output operator
 	// NOTE: This is a hack to add Output operator to the PhysicalPlan.
 	builder := df.planBuilder.Clone().Output(callback)

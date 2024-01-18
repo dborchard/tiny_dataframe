@@ -1,4 +1,4 @@
-package optimizer
+package rbo
 
 import (
 	"fmt"

@@ -4,15 +4,15 @@ import (
 	"context"
 	"golang.org/x/sync/errgroup"
 	"strings"
+	tableprovider "tiny_dataframe/pkg/d_physicalplan/c_table_provider"
 	execution "tiny_dataframe/pkg/e_exec_runtime"
-	datasource "tiny_dataframe/pkg/f_data_source"
 	containers "tiny_dataframe/pkg/g_containers"
 )
 
 //----------------- Input -----------------
 
 type Input struct {
-	Source datasource.TableReader
+	Source tableprovider.TableReader
 
 	//TODO: make this Expr instead of string
 	// Add more things like Distinct or Filter etc.
@@ -36,15 +36,15 @@ func (s *Input) Schema() containers.ISchema {
 	return schema.Select(s.Projection)
 }
 
-func (s *Input) Execute(ctx *execution.TaskContext, _ datasource.Callback) error {
+func (s *Input) Execute(ctx *execution.TaskContext, _ tableprovider.Callback) error {
 
-	childrenCallbacks := make([]datasource.Callback, 0, len(s.Children()))
+	childrenCallbacks := make([]tableprovider.Callback, 0, len(s.Children()))
 	for _, plan := range s.Children() {
 		childrenCallbacks = append(childrenCallbacks, plan.Callback)
 	}
 
-	options := []datasource.Option{
-		datasource.WithProjection(s.Projection...),
+	options := []tableprovider.Option{
+		tableprovider.WithProjection(s.Projection...),
 	}
 
 	// For Push based functions.
@@ -86,7 +86,7 @@ func (s *Input) Finish(ctx context.Context) error {
 // --------Output---------
 
 type Output struct {
-	OutputCallback datasource.Callback
+	OutputCallback tableprovider.Callback
 }
 
 func (e *Output) Schema() containers.ISchema {
@@ -101,7 +101,7 @@ func (e *Output) Callback(ctx context.Context, r containers.IBatch) error {
 	return e.OutputCallback(ctx, r)
 }
 
-func (e *Output) Execute(ctx *execution.TaskContext, callback datasource.Callback) error {
+func (e *Output) Execute(ctx *execution.TaskContext, callback tableprovider.Callback) error {
 	panic("bug")
 }
 

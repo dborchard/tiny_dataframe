@@ -1,4 +1,4 @@
-package datasource
+package tableprovider
 
 import (
 	"fmt"
@@ -13,13 +13,13 @@ import (
 	containers "tiny_dataframe/pkg/g_containers"
 )
 
-type ParquetDataSource struct {
+type ParquetTableReader struct {
 	filePath string
 	schema   containers.ISchema
 }
 
-func NewParquetDataSource(filePath string, schema containers.ISchema) (TableReader, error) {
-	ds := &ParquetDataSource{filePath: filePath}
+func NewParquetTableReader(filePath string, schema containers.ISchema) (TableReader, error) {
+	ds := &ParquetTableReader{filePath: filePath}
 	if schema == nil {
 		var err error
 		schema, err = ds.inferSchema()
@@ -32,16 +32,16 @@ func NewParquetDataSource(filePath string, schema containers.ISchema) (TableRead
 	return ds, nil
 }
 
-func (ds *ParquetDataSource) Schema() containers.ISchema {
+func (ds *ParquetTableReader) Schema() containers.ISchema {
 	return ds.schema
 }
 
-func (ds *ParquetDataSource) View(ctx *execution.TaskContext, fn func(ctx *execution.TaskContext, snapshotTs uint64) error) error {
+func (ds *ParquetTableReader) View(ctx *execution.TaskContext, fn func(ctx *execution.TaskContext, snapshotTs uint64) error) error {
 	snapshotTs := uint64(time.Now().UnixNano())
 	return fn(ctx, snapshotTs)
 }
 
-func (ds *ParquetDataSource) Push(tCtx *execution.TaskContext, snapshotTs uint64, callbacks []Callback, options ...Option) (err error) {
+func (ds *ParquetTableReader) Push(tCtx *execution.TaskContext, snapshotTs uint64, callbacks []Callback, options ...Option) (err error) {
 	parquetFile, osFile, err := openParquetFile(ds.filePath)
 	if err != nil {
 		return err
@@ -161,7 +161,7 @@ func parquetColumnIn(parquetColDef parquet.Field, projections []string) bool {
 	return present
 }
 
-func (ds *ParquetDataSource) inferSchema() (schema containers.ISchema, err error) {
+func (ds *ParquetTableReader) inferSchema() (schema containers.ISchema, err error) {
 	parquetFile, osFile, err := openParquetFile(ds.filePath)
 	if err != nil {
 		return nil, err

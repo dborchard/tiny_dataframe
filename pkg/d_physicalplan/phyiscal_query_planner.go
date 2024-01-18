@@ -3,8 +3,8 @@ package physicalplan
 import (
 	"errors"
 	logicalplan "tiny_dataframe/pkg/c_logical_plan"
-	"tiny_dataframe/pkg/d_physicalplan/eval_expr"
-	"tiny_dataframe/pkg/d_physicalplan/operators"
+	eval_expr "tiny_dataframe/pkg/d_physicalplan/a_eval_expr"
+	operators "tiny_dataframe/pkg/d_physicalplan/b_operators"
 	containers "tiny_dataframe/pkg/g_containers"
 )
 
@@ -78,6 +78,14 @@ func (d DefaultQueryPlanner) CreatePhyPlan(lp logicalplan.LogicalPlan, state Exe
 			prev.SetNext(selection)
 			prev = selection
 		case logicalplan.Aggregate:
+			shouldPlanOrderedAgg := func(groupByList []logicalplan.Expr) bool {
+				//TODO: this is a dummy rule
+				if len(groupByList) > 1 {
+					return true
+				}
+				return false
+			}
+
 			groupByExpr := make([]eval_expr.Expr, len(lPlan.GroupExpr))
 			schema := prev.Schema()
 			for i, e := range lPlan.GroupExpr {
@@ -91,7 +99,14 @@ func (d DefaultQueryPlanner) CreatePhyPlan(lp logicalplan.LogicalPlan, state Exe
 				aggExpr[i] = eval_expr.AggregateExpr{Name: e.Name, Expr: inner}
 			}
 
-			agg := operators.NewHashAggregate(groupByExpr, aggExpr)
+			var agg operators.PhysicalPlan
+			// NOTE: this is a place where a single logical plan can be mapped to multiple physical plans based on
+			// the strategy involved. Kind of like a strategy pattern.
+			if shouldPlanOrderedAgg(lPlan.GroupExpr) {
+				agg = operators.NewOrderedAggregate(groupByExpr, aggExpr)
+			} else {
+				agg = operators.NewHashAggregate(groupByExpr, aggExpr)
+			}
 			prev.SetNext(agg)
 			prev = agg
 

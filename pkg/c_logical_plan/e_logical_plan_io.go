@@ -2,7 +2,7 @@ package logicalplan
 
 import (
 	"fmt"
-	datasource "tiny_dataframe/pkg/f_data_source"
+	"tiny_dataframe/pkg/d_physicalplan/c_table_provider"
 	containers "tiny_dataframe/pkg/g_containers"
 )
 
@@ -10,7 +10,7 @@ import (
 
 type Input struct {
 	Path       string
-	Source     datasource.TableReader
+	Source     tableprovider.TableReader
 	Projection []string
 }
 
@@ -55,7 +55,7 @@ func (s Input) String() string {
 
 type Output struct {
 	Next     LogicalPlan
-	Callback datasource.Callback
+	Callback tableprovider.Callback
 }
 
 func (o Output) Schema() containers.ISchema {

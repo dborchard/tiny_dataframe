@@ -4,7 +4,7 @@ import (
 	"time"
 	dataframe "tiny_dataframe/pkg/b_dataframe"
 	physicalplan "tiny_dataframe/pkg/d_physicalplan"
-	datasource "tiny_dataframe/pkg/f_data_source"
+	"tiny_dataframe/pkg/d_physicalplan/c_table_provider"
 	containers "tiny_dataframe/pkg/g_containers"
 )
 
@@ -22,7 +22,7 @@ func NewContext() *ExecContext {
 }
 
 func (c *ExecContext) Parquet(path string, schema containers.ISchema) (dataframe.IDataFrame, error) {
-	src, err := datasource.NewParquetDataSource(path, schema)
+	src, err := tableprovider.NewParquetTableReader(path, schema)
 	if err != nil {
 		return nil, err
 	}

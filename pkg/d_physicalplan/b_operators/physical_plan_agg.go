@@ -4,9 +4,9 @@ import (
 	"context"
 	"fmt"
 	"github.com/apache/arrow/go/v12/arrow"
-	"tiny_dataframe/pkg/d_physicalplan/eval_expr"
+	eval_expr "tiny_dataframe/pkg/d_physicalplan/a_eval_expr"
+	"tiny_dataframe/pkg/d_physicalplan/c_table_provider"
 	execution "tiny_dataframe/pkg/e_exec_runtime"
-	datasource "tiny_dataframe/pkg/f_data_source"
 	containers "tiny_dataframe/pkg/g_containers"
 )
 
@@ -24,7 +24,7 @@ type hashTuple struct {
 	accumulators []eval_expr.Accumulator
 }
 
-func NewHashAggregate(groupBy []eval_expr.Expr, aggExpr []eval_expr.AggregateExpr) *HashAggregate {
+func NewHashAggregate(groupBy []eval_expr.Expr, aggExpr []eval_expr.AggregateExpr) PhysicalPlan {
 	agg := HashAggregate{
 		GroupByList: groupBy,
 		AggExprList: aggExpr,
@@ -102,7 +102,7 @@ func (a *HashAggregate) SetNext(next PhysicalPlan) {
 	a.Next = next
 }
 
-func (a *HashAggregate) Execute(ctx *execution.TaskContext, callback datasource.Callback) error {
+func (a *HashAggregate) Execute(ctx *execution.TaskContext, callback tableprovider.Callback) error {
 	panic("bug")
 }
 
@@ -149,4 +149,54 @@ func (a *HashAggregate) encodeCols(cols []any) string {
 		res += fmt.Sprint(col)
 	}
 	return res
+}
+
+// ----------- OrderedAggregate -------------
+
+type OrderedAggregate struct {
+	Next PhysicalPlan
+
+	GroupByList []eval_expr.Expr
+	AggExprList []eval_expr.AggregateExpr
+
+	// groupedData tree[string]hashTuple
+	// This groupedData could be stored in an ordered tree. Need to learn more about it.
+}
+
+func NewOrderedAggregate(groupBy []eval_expr.Expr, aggExpr []eval_expr.AggregateExpr) PhysicalPlan {
+	agg := OrderedAggregate{
+		GroupByList: groupBy,
+		AggExprList: aggExpr,
+	}
+	return &agg
+}
+
+func (o *OrderedAggregate) Schema() containers.ISchema {
+	//TODO implement me
+	panic("implement me")
+}
+
+func (o *OrderedAggregate) Children() []PhysicalPlan {
+	//TODO implement me
+	panic("implement me")
+}
+
+func (o *OrderedAggregate) Callback(ctx context.Context, batch containers.IBatch) error {
+	//TODO implement me
+	panic("implement me")
+}
+
+func (o *OrderedAggregate) SetNext(next PhysicalPlan) {
+	//TODO implement me
+	panic("implement me")
+}
+
+func (o *OrderedAggregate) Finish(ctx context.Context) error {
+	//TODO implement me
+	panic("implement me")
+}
+
+func (o *OrderedAggregate) Execute(ctx *execution.TaskContext, callback tableprovider.Callback) error {
+	//TODO implement me
+	panic("implement me")
 }

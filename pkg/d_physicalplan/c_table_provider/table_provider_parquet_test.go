@@ -1,4 +1,4 @@
-package datasource
+package tableprovider
 
 import (
 	"context"
@@ -9,8 +9,8 @@ import (
 	containers "tiny_dataframe/pkg/g_containers"
 )
 
-func TestParquetDataSource_Scan(t *testing.T) {
-	ds, err := NewParquetDataSource("../../test/data/c1_c2_c3_int64.parquet", nil)
+func TestParquetTableReader_Scan(t *testing.T) {
+	ds, err := NewParquetTableReader("../../../test/data/c1_c2_c3_int64.parquet", nil)
 	if err != nil {
 		t.Error(err)
 	}

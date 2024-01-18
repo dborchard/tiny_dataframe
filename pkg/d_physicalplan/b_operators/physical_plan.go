@@ -3,9 +3,9 @@ package operators
 import (
 	"context"
 	"fmt"
-	"tiny_dataframe/pkg/d_physicalplan/eval_expr"
+	eval_expr "tiny_dataframe/pkg/d_physicalplan/a_eval_expr"
+	"tiny_dataframe/pkg/d_physicalplan/c_table_provider"
 	execution "tiny_dataframe/pkg/e_exec_runtime"
-	datasource "tiny_dataframe/pkg/f_data_source"
 	containers "tiny_dataframe/pkg/g_containers"
 )
 
@@ -33,7 +33,7 @@ type PhysicalPlan interface {
 	Finish(ctx context.Context) error
 
 	// Execute is only valid for DataSource, ie Input
-	Execute(ctx *execution.TaskContext, callback datasource.Callback) error
+	Execute(ctx *execution.TaskContext, callback tableprovider.Callback) error
 }
 
 var _ PhysicalPlan = &Input{}
@@ -75,7 +75,7 @@ func (p *Projection) Schema() containers.ISchema {
 	return p.Sch
 }
 
-func (p *Projection) Execute(_ *execution.TaskContext, _ datasource.Callback) error {
+func (p *Projection) Execute(_ *execution.TaskContext, _ tableprovider.Callback) error {
 	panic("bug if you see this")
 }
 
@@ -116,7 +116,7 @@ func (s *Selection) Children() []PhysicalPlan {
 	return []PhysicalPlan{s.Next}
 }
 
-func (s *Selection) Execute(ctx *execution.TaskContext, callback datasource.Callback) error {
+func (s *Selection) Execute(ctx *execution.TaskContext, callback tableprovider.Callback) error {
 	panic("bug if you see this")
 }
 

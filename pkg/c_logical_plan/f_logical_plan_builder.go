@@ -1,7 +1,7 @@
 package logicalplan
 
 import (
-	datasource "tiny_dataframe/pkg/f_data_source"
+	"tiny_dataframe/pkg/d_physicalplan/c_table_provider"
 )
 
 type Builder struct {
@@ -12,7 +12,7 @@ func NewBuilder() *Builder {
 	return &Builder{}
 }
 
-func (b *Builder) Input(path string, source datasource.TableReader, proj []string) *Builder {
+func (b *Builder) Input(path string, source tableprovider.TableReader, proj []string) *Builder {
 	b.plan = Input{Path: path, Source: source, Projection: proj}
 	return b
 }
@@ -32,7 +32,7 @@ func (b *Builder) Aggregate(groupBy []Expr, aggExpr []AggregateExpr) *Builder {
 	return b
 }
 
-func (b *Builder) Output(callback datasource.Callback) *Builder {
+func (b *Builder) Output(callback tableprovider.Callback) *Builder {
 	b.plan = Output{Next: b.plan, Callback: callback}
 	return b
 }
