@@ -2,7 +2,7 @@
 
 ### Why Dataframe
 
-Dataframe removes the complexity of handling `SQL parsing`, `SQL rewriting`, `Binding`, `SQL Query Planner` etc. Once
+Dataframe removes the complexity of handling `SQL parsing`, `SQL rewriting`, `Binder/SQL Query Planner` etc. Once
 the dataframe is mature, we can easily integrate it with an SQL engine.
 
 ### Features
@@ -11,7 +11,7 @@ the dataframe is mature, we can easily integrate it with an SQL engine.
 - Support `Parquet` reading with schema inference
 - `Rule Based` Optimizer
 - `AggFunc`: Sum
-- `BooleanBinaryExpr`: Eq
+- `BooleanBinaryExpr`: Lt
 
 ### Example
 
